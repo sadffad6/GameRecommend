@@ -7,8 +7,9 @@ class Games(models.Model):
     game_rating = models.DecimalField(max_digits=3, decimal_places=1)  # 游戏评分
     game_cover = models.URLField(max_length=500)         # 游戏封面 URL
     game_description = models.TextField(max_length=500,default="Default game description")
+    game_type=models.CharField(max_length=64,default="Default game type")
     def __str__(self):
-        return self.name
+        return self.game_name
 
 
 class GameComment(models.Model):
