@@ -41,8 +41,12 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     "user",
     "home",
+    'corsheaders',
 ]
-
+CORS_ALLOWED_ORIGINS = [
+     'https://localhost:*',  # 允许本地开发环境的跨域请求
+     'https://yourfrontenddomain.com',  # 允许其他域名的请求
+ ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -51,6 +55,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',  # 必须添加在 CommonMiddleware 之前
+    'django.middleware.common.CommonMiddleware',
 
 ]
 
@@ -146,3 +152,10 @@ REST_FRAMEWORK = {
     ],
 }
 
+CORS_ALLOW_CREDENTIALS = True  # 允许跨域请求携带凭证（cookies等）
+
+CSRF_COOKIE_HTTPONLY = True  # 确保 CSRF Cookie 是 HttpOnly 的
+CSRF_TRUSTED_ORIGINS = [
+    'https://localhost:*',
+    'https://yourfrontenddomain.com',  # 允许的可信域名
+]
