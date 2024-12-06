@@ -1,25 +1,16 @@
-from django.db import models
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from home.models import Games  # 引入自定义模型
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
+
 from home.models import Games, GameComment
-from django.contrib.auth.models import User
-from django.http import Http404
+
 from rest_framework import status, permissions
-from django.conf import settings
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.permissions import IsAuthenticated
 from home.models import Games, GameType, GameTypeRelation,Developer,UserPreference
 from django.db.models import Prefetch,Q
+from search.InvertedIndex import InvertedIndex
 
-
-
+from RecommendSys.settings import REDIS_CONFIG
 class UserPreferenceView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -181,10 +172,13 @@ class HomeView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        user=request.user
         """
         获取游戏列表并关联类型和开发厂商
         """
         try:
+            index=InvertedIndex()
+            index.init()
             # 使用正确的 related_name 预加载类型关系
             games = Games.objects.prefetch_related(
                 Prefetch(
@@ -211,6 +205,8 @@ class HomeView(APIView):
             return Response({"status": 200, "data": game_list}, status=200)
         except Exception as e:
             return Response({"status": 500, "message": str(e)}, status=500)
+
+
 
 
 
