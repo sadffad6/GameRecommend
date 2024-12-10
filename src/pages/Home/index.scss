@@ -1,0 +1,35 @@
+.mainContentContainer{
+    box-shadow: -10px 0 5px -10px rgba(0, 0, 0, 0.3), /* 左侧阴影 */
+    10px 0 5px -10px rgba(0, 0, 0, 0.3); /* 右侧阴影 */
+    padding-top:60px;
+    margin-left:100px;
+    margin-right:100px;
+    padding-left:100px;
+    padding-right:100px;
+    width:1136px;
+}
+
+.mainContent{
+    align-items: center;
+    margin-top:30px;
+    padding-left: 100px;
+    padding-right:100px;
+    width:1000px;
+    font-family: 'Comic';
+    
+}
+
+.mainContentLeft{
+    width:800px;
+}
+
+.gameListTitle{
+    font-size: 30px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.gameFilter{
+    margin-top:20px;
+}
+

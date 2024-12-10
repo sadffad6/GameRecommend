@@ -1,0 +1,115 @@
+.gameCardLink{
+    text-decoration: none;
+    color:black;
+}
+
+.gameCard{
+    display:flex;
+    border-radius: 5px;
+    box-shadow: 0 4px 5px rgba(0,0,0,0.1),0 -5px 5px rgba(0,0,0,0.1);
+   
+    padding-top:16px;
+    padding-bottom:16px;
+    padding-left:10px;
+    padding-right:15px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.gameCardContent{
+    display: flex;
+    justify-content: space-between;
+    flex-grow:1;
+}
+
+.gameCardContentRight{
+    margin-left:25px;
+    width:120px;
+    position: relative;
+    padding-top:15px;
+    padding-bottom:15px;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 1px; // 竖线的宽度。
+    background-color: #ccc; // 竖线的颜色。
+  }
+}
+
+.gameCardRating{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.gameCardRatingRing{
+    width:48px;
+    height:48px;
+}
+
+svg {
+  
+    text {
+      text-anchor: middle;
+      font-size: 30px;
+      font-weight: bold;
+      fill: black;
+    }
+}
+
+.gameCardRatingInfo{
+    text-align: center;
+    font-size:15px;
+}
+
+.gameCardPlatform{
+    margin-bottom:15px;
+    font-size:15px;
+    color:rgb(77, 194, 255);
+}
+
+.gameCardTitle{
+    font-size:25px;
+    font-weight: bold;
+    font-family: 'Roboto', sans-serif;
+    margin-bottom:15px;
+}
+
+.gameCardTitle:hover{
+    color:rgb(35, 171, 244);
+}
+
+.gameCardContentFooter{
+    display:flex;
+    font-size:13px;
+    font-weight:400;
+}
+
+.gameCardTags {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  
+    span {
+      &:not(:last-child) {
+        &::after {
+          content: '/'; // 添加斜杠作为分隔符
+          margin-left: 5px; // 分隔符后的间距
+        }
+      }
+    }
+  }
+.gameCardDeveloper{
+    margin-left:10px;
+}
+
+.gameCardImage{
+width:120px;
+}
+
+

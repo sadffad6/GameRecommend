@@ -1,0 +1,209 @@
+.loginPage::before{
+    background-image:url('../../../public/p3r.jpg');
+    background-size:cover;
+    height:100vh;
+    width:100vw;
+    background-position: center;
+    position:fixed;
+    top:0;
+    content:"";
+    z-index: -1;
+    //filter:blur(5px);
+}
+
+.loginContainer{
+   
+    padding-top:60px;
+    margin-left:100px;
+    margin-right:100px;
+    padding-left:100px;
+    padding-right:100px;
+    width:1136px;
+    height:650px;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+}
+
+.loginRec{
+    height:400px;
+    width:300px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding-top:20px;
+    padding-left:32px;
+    padding-right:32px;
+    padding-bottom:20px;
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+.loginContent{
+    margin-bottom:20px;
+    margin-top:10px;
+}
+
+
+.loginTitle{
+    height:40px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.loginTitleTextLogin{
+    height:50px;
+    width:50px;
+    line-height:50px;
+    font-family:'Xiaolai';
+    margin-left:10px;
+}
+
+.loginTitleTextRegister{
+    margin-left:20px;
+    line-height:50px;
+    width:50px;
+    font-family:'Xiaolai';
+}
+
+.loginTitleText a {
+    font-size:16px;
+    font-weight:400;
+    opacity: 0.5;
+    position:relative;
+    line-height: 40px;
+    height:40px;
+    display: inline-block; 
+}
+
+.loginTitleText a.active {
+    color: #007bff;
+    font-size:16px;
+    font-weight:600;
+    opacity:1;
+}
+
+.loginTitleText a.active::after {
+    content: '';
+    position:absolute;
+    width: 10px;
+    height: 2px;
+    background-color: #007bff;
+    bottom: -1px;
+    left: 0;
+    margin-left:12px;
+    border-radius:3px;
+}
+
+.loginRecContent{
+    padding-top:20px;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    
+}
+
+.loginRecContent input{
+    width:100%;
+    height:40px;
+    border:1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    margin-bottom:20px;
+    padding-left:10px;
+    transition: border 0.3s, box-shadow 0.3s;
+}
+
+.loginRecContent input:hover{
+    outline:none;
+    border:1px solid #007bff;
+}
+
+.loginRecContent input:focus{
+    outline:none;
+    border:1px solid #007bff;
+    box-shadow: inset 0 0 5px 2px rgba(0, 123, 255, 0.5);
+}
+
+.loginRecContent button{
+    width:200px;
+    height:40px;
+    border:1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    margin-bottom:20px;
+    padding-left:10px;
+    background-color: rgb(77, 194, 255);
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    opacity:1;
+    cursor:pointer;
+}
+
+.loginRecContent button:hover{
+    opacity:0.8;
+}
+
+.loginRecContent button:active{
+    opacity:1;
+}
+
+.registerRecContent{
+    padding-top:20px;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.registerRecContent input{
+    width:100%;
+    height:40px;
+    border:1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    margin-bottom:20px;
+    padding-left:10px;
+    transition: border 0.3s, box-shadow 0.3s;
+}
+
+.registerRecContent input:hover{
+    outline:none;
+    border:1px solid #007bff;
+}
+
+.registerRecContent input:focus{
+    outline:none;
+    border:1px solid #007bff;
+    box-shadow: inset 0 0 3px 2px rgba(0, 123, 255, 0.5);
+}
+
+.registerRecContent button{
+    width:200px;
+    height:40px;
+    border:1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    margin-bottom:20px;
+    padding-left:10px;
+    background-color: rgb(77, 194, 255);
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    opacity:1;
+    cursor:pointer;
+}
+
+.registerRecContent button:hover{
+    opacity:0.8;
+}
+
+.registerRecContent button:active{
+    opacity:1;
+}
+
+.loginFooter{
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.loginFooterContent{
+    margin-top:20px;
+    font-size: 10px;
+    font-weight:100;
+    font-family: 'Xiaolai';
+}

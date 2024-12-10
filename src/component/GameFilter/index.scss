@@ -1,0 +1,30 @@
+.gameFilter button {
+  margin-right: 10px;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius:5px;
+  border:none;
+  margin-bottom:10px;
+  background-color: transparent;
+}
+
+.gameFilter button:hover {
+  background-color:rgb(77, 194, 255,0.3)
+}
+
+.gameFilter button.active {
+  background-color:rgb(77, 194, 255,0.5)
+}
+
+.gameListHeader {
+  margin-bottom: 10px;
+}
+
+.gameList ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.gameList li {
+  margin-bottom: 5px;
+}

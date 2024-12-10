@@ -1,0 +1,84 @@
+@font-face {
+    font-family: 'Comic';  /* 定义一个名称来引用这个字体 */
+    src: 
+         url('../../fonts/COMIC.TTF') format('truetype');
+    font-weight: normal;  /* 字体的粗细，可以是normal, bold, 100-900等 */
+    font-style: normal;  /* 字体的风格，可以是normal, italic, oblique等 */
+}
+
+@font-face{
+    font-family:'Xiaolai';
+    src:
+        url('../../fonts/XiaolaiSC-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.homePage{
+    font-family: 'Comic';  /* 使用定义的字体 */
+    margin:0px 0px;
+    padding:0px 0px;
+    width:100%;
+}
+
+.navBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin:0px 0px;
+    z-index:1000;
+    width:100%;
+    top:0px;
+    position:fixed;
+    height:60px;
+    
+}
+
+.title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #000;
+    margin-left:20px;
+    font-family: 'Comic';
+    text-decoration:none;
+}
+
+.navLinks{
+    width:300px;
+    display: flex;
+    list-style: none;
+    justify-content: space-around;
+    margin-left:40px;
+    background: rgb(77, 194, 255,0.6); /* 圆角矩形的背景色 */
+    padding: 10px 10px;
+    border-radius: 13px; /* 圆角大小 */
+    transition: background 0.3s; /* 背景色变化的过渡效果 */
+    
+}
+
+
+
+.navLinks li{
+    justify-content: flex;
+}
+
+.navLinks li a:hover {
+    color: #276CE6; /* 鼠标悬停时的背景色 */
+}
+
+.navLinks li a {
+    text-decoration: none;
+    transition: background 0.3s;
+    padding: 5px 10px;
+    font-weight: normal;
+    font-family:'Comic';
+    color: #000;
+    font-family: 'Xiaolai';
+}
+
+.avatar{
+    margin-left:auto;
+    margin-right:50px;
+}
