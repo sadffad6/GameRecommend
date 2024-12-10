@@ -9,7 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from home.models import Games, GameType, GameTypeRelation,Developer,UserPreference
 from django.db.models import Prefetch,Q
 from search.InvertedIndex import InvertedIndex
-
+import csv
+import pandas as pd
 from RecommendSys.settings import REDIS_CONFIG
 class UserPreferenceView(APIView):
 
@@ -207,8 +208,68 @@ class HomeView(APIView):
             return Response({"status": 500, "message": str(e)}, status=500)
 
 
+import pandas as pd
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Developer, GameType, Games, GameTypeRelation
 
+class ImportView(APIView):
+    def post(self, request):
+        if 'csv_file' not in request.FILES:
+            return Response({'message': '请上传CSV文件'}, status=400)
 
+        csv_file = request.FILES['csv_file']
+        try:
+            # 使用 pandas 读取 CSV 文件内容
+            df = pd.read_csv(csv_file)
+
+            # 删除包含空值的行
+            df.dropna(subset=['Game Name', 'Game Developer', 'Game Rating', 'Game Cover', 'Game Description', 'Game ID'], how='any', inplace=True)
+
+            # 处理游戏评分（将无法转换为数字的值转换为 NaN，并用 0.0 填充）
+            df['Game Rating'] = pd.to_numeric(df['Game Rating'], errors='coerce')
+            df['Game Rating'].fillna(0.0, inplace=True)
+
+            # 导入开发厂商数据，使用 get_or_create 来避免重复数据
+            for index, row in df.iterrows():
+                developer_name = row['Game Developer']
+                if pd.notnull(developer_name):
+                    developer, created = Developer.objects.get_or_create(name=developer_name)
+
+                # 导入游戏数据，并与开发厂商关联
+                game_name = row['Game Name']
+                game_id = row['Game ID']
+                game_rating = row['Game Rating']
+                game_cover = row['Game Cover']
+                game_description = row['Game Description']
+
+                # 检查游戏是否已经存在
+                game, created = Games.objects.get_or_create(
+                    game_id=game_id,
+                    defaults={
+                        'game_name': game_name,
+                        'game_rating': game_rating,
+                        'game_cover': game_cover,
+                        'game_description': game_description,
+                        'developer': developer
+                    }
+                )
+
+                # 获取游戏标签并创建或查找相应的类型
+                tags = row['Game Tags'] if pd.notnull(row['Game Tags']) else ''
+                tag_list = tags.split('|') if tags else []
+
+                # 处理每个标签并在数据库中进行匹配
+                for tag in tag_list:
+                    if tag:
+                        game_type, created = GameType.objects.get_or_create(type_name=tag)
+
+                        # 创建游戏与类型的关系
+                        GameTypeRelation.objects.get_or_create(game=game, type=game_type)
+
+            return Response({'message': '数据导入成功!'}, status=200)
+        except Exception as e:
+            return Response({'message': f'发生错误: {str(e)}'}, status=500)
 
 
 class DetailView(APIView):
@@ -225,21 +286,21 @@ class DetailView(APIView):
                 return Response({"status": 404, "message": "Game not found"}, status=404)
 
             game_details = {
-                "game_id": game.game_id,
+                "game_id": game.game_id,  # 使用 game_id
                 "game_name": game.game_name,
                 "game_platform": game.game_platform,
                 "game_rating": game.game_rating,
                 "game_description": game.game_description,
                 "game_cover": game.game_cover,
-                "developer": game.developer.name if game.developer else "Unknown Developer"  # 添加开发厂商信息
+                "developer": game.developer.name if game.developer else "Unknown Developer"
             }
 
             # 查询关联的类型
-            tags = GameTypeRelation.objects.filter(game_id=game_id).select_related('type').values_list('type__type_name', flat=True)
+            tags = GameTypeRelation.objects.filter(game=game).select_related('type').values_list('type__type_name', flat=True)
 
             # 查询评论
-            comments = GameComment.objects.filter(game_id=game_id).values(
-                'user_id', 'user__username', 'comment', 'user_rating', 'timestamp'
+            comments = GameComment.objects.filter(game=game).values(
+                'user_id', 'user__username', 'comment', 'user_rating', 'timestamp', 'game_actual_id'
             )
             new_comments = [
                 {
@@ -247,7 +308,8 @@ class DetailView(APIView):
                     'username': comment['user__username'],
                     'comment': comment['comment'],
                     'user_rating': comment['user_rating'],
-                    'timestamp': comment['timestamp']
+                    'timestamp': comment['timestamp'],
+                    'game_actual_id': comment['game_actual_id'],  # 添加 game_actual_id
                 }
                 for comment in comments
             ]
@@ -255,7 +317,7 @@ class DetailView(APIView):
             # 构造返回数据
             response_data = {
                 "game_details": game_details,
-                "tags": list(tags),  # 将类型数据加入返回
+                "tags": list(tags),
                 "comments": new_comments
             }
             return Response({"status": 200, "data": response_data}, status=200)
@@ -263,45 +325,39 @@ class DetailView(APIView):
         except Exception as e:
             return Response({"status": 500, "message": str(e)}, status=500)
 
-
     def post(self, request, game_id):
         """
-        增加用户评论
+        添加新的评论
         """
-        user = request.user
-        comment_text = request.data.get("comment")
-        user_rating = request.data.get("user_rating")  # 修改为 user_rating
-
-        if not game_id or not comment_text or user_rating is None:
-            return Response({"status": 400, "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
-            game = Games.objects.get(game_id=game_id)
-        except Games.DoesNotExist:
-            return Response({"status": 404, "message": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
+            # 获取评论内容、评分等数据
+            comment_data = request.data
+            user = request.user  # 当前登录的用户
+            comment = comment_data.get("comment")
+            user_rating = comment_data.get("user_rating")
 
-        # 检查用户是否已经对该游戏评论
-        if GameComment.objects.filter(user=user, game=game).exists():
-            return Response({"status": 400, "message": "You have already commented on this game"},
-                            status=status.HTTP_400_BAD_REQUEST)
+            if not comment or user_rating is None:
+                return Response({"status": 400, "message": "Comment and rating are required."}, status=400)
 
-        # 创建评论
-        comment = GameComment.objects.create(
-            user=user,
-            game=game,
-            comment=comment_text,
-            user_rating=user_rating  # 保存用户评分
-        )
+            # 获取游戏
+            game = Games.objects.filter(game_id=game_id).first()
+            if not game:
+                return Response({"status": 404, "message": "Game not found."}, status=404)
 
-        return Response({
-            "status": 201,
-            "message": "Comment added successfully",
-            "data": {
-                "comment_id": comment.id,
-                "comment": comment.comment,
-                "user_rating": comment.user_rating
-            }
-        }, status=status.HTTP_201_CREATED)
+            # 创建评论
+            new_comment = GameComment(
+                user=user,
+                game=game,
+                comment=comment,
+                user_rating=user_rating,
+                game_actual_id=game_id
+            )
+            new_comment.save()
+
+            return Response({"status": 201, "message": "Comment added successfully."}, status=201)
+
+        except Exception as e:
+            return Response({"status": 500, "message": str(e)}, status=500)
 
     def put(self, request, game_id):
         """
@@ -314,14 +370,10 @@ class DetailView(APIView):
         if not game_id or not comment_text or user_rating is None:
             return Response({"status": 400, "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            game = Games.objects.get(game_id=game_id)
-        except Games.DoesNotExist:
-            return Response({"status": 404, "message": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # 检查评论是否存在
         try:
-            comment = GameComment.objects.get(user=user, game=game)
+            comment = GameComment.objects.get(user=user, game_actual_id=game_id)
         except GameComment.DoesNotExist:
             return Response({"status": 404, "message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -339,3 +391,4 @@ class DetailView(APIView):
                 "user_rating": comment.user_rating
             }
         }, status=status.HTTP_200_OK)
+

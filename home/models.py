@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Developer(models.Model):
@@ -15,9 +14,9 @@ class Developer(models.Model):
         verbose_name_plural = "开发厂商列表"
 
 
-
 class Games(models.Model):
-    game_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
+    game_id = models.CharField(max_length=255, unique=True, verbose_name="实际的游戏id")
     game_name = models.CharField(max_length=255, verbose_name="游戏名称")
     game_platform = models.CharField(max_length=255, verbose_name="游戏平台")
     game_rating = models.DecimalField(
@@ -31,8 +30,8 @@ class Games(models.Model):
     developer = models.ForeignKey(
         'Developer',
         on_delete=models.SET_NULL,  # 删除开发商时设置为 NULL
-        null=True,                  # 数据库允许 NULL 值
-        blank=True,                 # 表单允许为空
+        null=True,
+        blank=True,
         verbose_name="开发厂商"
     )
 
@@ -43,28 +42,25 @@ class Games(models.Model):
         verbose_name = "游戏"
         verbose_name_plural = "游戏列表"
 
-
-
-
-
-
 class GameComment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户")
-    game = models.ForeignKey(Games, on_delete=models.CASCADE, verbose_name="游戏")
+    game = models.ForeignKey(Games, on_delete=models.CASCADE, to_field='id', verbose_name="游戏")
     user_rating = models.DecimalField(
         max_digits=3,
         decimal_places=1,
         validators=[MinValueValidator(0.0), MaxValueValidator(10.0)],
-        verbose_name="用户评分",
-        default=0.0  # 设置默认值
+        verbose_name="用户评分"
     )
-    comment = models.TextField(blank=True, null=True, verbose_name="评论内容")
-    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="评论时间")
+    game_actual_id = models.CharField(max_length=255, verbose_name="游戏实际ID",default=0)
+    comment = models.TextField(max_length=1000, verbose_name="评论内容")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="评论时间")  # 默认使用当前时间
+
+    def __str__(self):
+        return f'{self.user.username} - {self.game.game_name}'
 
     class Meta:
         verbose_name = "游戏评论"
         verbose_name_plural = "游戏评论列表"
-        unique_together = ('user', 'game')
 
 
 class GameType(models.Model):
@@ -83,13 +79,13 @@ class GameTypeRelation(models.Model):
     game = models.ForeignKey(
         Games,
         on_delete=models.CASCADE,
-        related_name="game_type_relations",  # 定义反向关系名称
+        related_name="game_type_relations",
         verbose_name="游戏"
     )
     type = models.ForeignKey(
         GameType,
         on_delete=models.CASCADE,
-        related_name="type_game_relations",  # 定义反向关系名称
+        related_name="type_game_relations",
         verbose_name="类型"
     )
 
@@ -97,7 +93,6 @@ class GameTypeRelation(models.Model):
         unique_together = ('game', 'type')
         verbose_name = "游戏类型关系"
         verbose_name_plural = "游戏类型关系列表"
-
 
 
 class UserPreference(models.Model):
@@ -108,5 +103,3 @@ class UserPreference(models.Model):
     class Meta:
         verbose_name = "用户偏好"
         verbose_name_plural = "用户偏好列表"
-
-

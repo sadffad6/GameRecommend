@@ -48,7 +48,7 @@ class SearchView(APIView):
             for game in games:
                 response_data.append({
                     'title': game.game_name,
-                    'id': game.game_id,
+                    'game_id': game.game_id,
                     'description': game.game_description,
                     'developer': game.developer.name if game.developer else "Unknown Developer",
                     'types': [relation.type.type_name for relation in game.related_types],

@@ -8,7 +8,7 @@ from rest_framework import status
 import redis
 from RecommendSys.settings import REDIS_CONFIG
 import redis
-
+import logging
 # 根据配置创建Redis连接实例
 redis_conn = redis.Redis(
     host=REDIS_CONFIG['host'],
@@ -45,8 +45,8 @@ class LoginView(APIView):
     permission_classes = [AllowAny]  # 登录界面允许公开访问
 
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
+        username = request.POST.get('username')
+        password = request.POST.get('password')
 
         if not username or not password:
             return Response({"status": 400, "message": "用户名和密码不能为空"}, status=status.HTTP_400_BAD_REQUEST)
@@ -55,9 +55,17 @@ class LoginView(APIView):
         if user is not None:
             token, created = Token.objects.get_or_create(user=user)
 
-            # 检查Redis中该用户的首次登录标识
-            first_login_status = redis_conn.get(f"first_login:{user.id}")
+            # 从Redis获取首次登录标识，注意键的格式为字节类型
+            first_login_status = redis_conn.get(f"first_login:{user.id}".encode())
             is_first_login = first_login_status == b"true"
+
+            if is_first_login:
+                print(f"用户 {user.id} 首次登录，记录首次登录状态为 true 到 Redis")
+                redis_conn.set(f"first_login:{user.id}".encode(), b"false")
+
+            else:
+                # 如果不是首次登录，将Redis中的首次登录标识更新为false
+                print(f"用户 {user.id} 非首次登录，更新首次登录状态为 false 到 Redis")
 
             return Response({
                 "status": 200,
