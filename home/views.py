@@ -1,134 +1,385 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from home.models import Games  # 引入自定义模型
-from home.models import GameComment
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
+
 from home.models import Games, GameComment
-from django.contrib.auth.models import User
-from django.http import Http404
-from rest_framework import status
-from django.conf import settings
-class HomeView(APIView):
-    permission_classes = [IsAuthenticated]  # 仅允许经过认证的用户访问
+
+from rest_framework import status, permissions
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from home.models import Games, GameType, GameTypeRelation,Developer,UserPreference
+from django.db.models import Prefetch,Q
+from search.InvertedIndex import InvertedIndex
+import csv
+import pandas as pd
+from RecommendSys.settings import REDIS_CONFIG
+class UserPreferenceView(APIView):
+
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # 获取所有的 HomeModel 实例
-        homes = Games.objects.all().values('game_id', 'game_name','game_platform','game_rating','game_cover')
+        try:
+            # 查询游戏类型
+            types = GameType.objects.values("type_id", "type_name")
 
-        # 将查询结果转换为列表并返回
-        return Response({"status": 200, "message": "成功", "data": list(homes)})
+            # 查询开发厂商
+            developers = Developer.objects.values("id", "name")
 
+            # 构造响应数据
+            return Response({
+                "status": 200,
+                "types": list(types),  # 将 QuerySet 转为列表
+                "developers": list(developers),  # 将 QuerySet 转为列表
+            }, status=200)
+        except Exception as e:
+            return Response({"status": 500, "message": str(e)}, status=500)
+
+    def post(self, request):
+        """
+        更新用户的偏好设置
+        """
+        user = request.user
+        game_types = request.data.get("game_types", [])  # 游戏类型ID列表
+        developers = request.data.get("developers", [])  # 开发商ID列表
+
+        if not isinstance(game_types, list) or not isinstance(developers, list):
+            return Response({"status": 400, "message": "Invalid data format. Both 'game_types' and 'developers' must be arrays."},
+                            status=400)
+
+        try:
+            # 获取或创建用户偏好记录
+            user_preference, created = UserPreference.objects.get_or_create(user=user)
+
+            # 更新游戏类型偏好
+            if game_types:
+                game_type_objects = GameType.objects.filter(type_id__in=game_types)
+                user_preference.game_types.set(game_type_objects)  # 使用 set() 替换现有的关系
+            else:
+                user_preference.game_types.clear()  # 如果为空则清除关系
+
+            # 更新开发商偏好
+            if developers:
+                developer_objects = Developer.objects.filter(id__in=developers)
+                user_preference.developers.set(developer_objects)  # 使用 set() 替换现有的关系
+            else:
+                user_preference.developers.clear()  # 如果为空则清除关系
+
+            return Response({"status": 200, "message": "Preferences updated successfully."})
+        except Exception as e:
+            return Response({"status": 500, "message": str(e)}, status=500)
+
+
+class RecommendationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """
+        按用户评分记录或偏好推荐游戏列表。
+        """
+        try:
+            user = request.user
+
+            # 检查用户是否有评分记录
+            user_has_rated = GameComment.objects.filter(user=user).exists()
+
+            if not user_has_rated:
+                # 如果用户没有评分记录，按照偏好推荐
+                try:
+                    user_preference = UserPreference.objects.get(user=user)
+                    preferred_game_types = user_preference.game_types.all()  # 偏好类型
+                    preferred_developers = user_preference.developers.all()  # 偏好开发商
+                except UserPreference.DoesNotExist:
+                    # 如果没有设置偏好，默认返回空查询集
+                    preferred_game_types = GameType.objects.none()
+                    preferred_developers = Developer.objects.none()
+
+                # 根据偏好筛选游戏
+                games = Games.objects.prefetch_related(
+                    Prefetch(
+                        'game_type_relations',
+                        queryset=GameTypeRelation.objects.select_related('type'),
+                        to_attr='related_types'
+                    )
+                ).select_related('developer').filter(
+                    Q(game_type_relations__type__in=preferred_game_types) |  # 偏好类型
+                    Q(developer__in=preferred_developers)  # 偏好开发商
+                ).distinct().order_by('-game_rating')
+
+                # 构造推荐游戏列表数据
+                preferred_game_list = [
+                    {
+                        "game_id": game.game_id,
+                        "game_name": game.game_name,
+                        "game_platform": game.game_platform,
+                        "game_rating": game.game_rating,
+                        "game_cover": game.game_cover,
+                        "developer": game.developer.name if game.developer else "Unknown Developer",
+                        "tags": [relation.type.type_name for relation in game.related_types]
+                    }
+                    for game in games
+                ]
+
+                return Response({
+                    "status": 200,
+                    "message": "Recommended games based on user preferences.",
+                    "data": preferred_game_list
+                }, status=200)
+
+            # 用户有评分记录，根据评分和偏好推荐
+            try:
+                user_preference = UserPreference.objects.get(user=user)
+                preferred_game_types = user_preference.game_types.all()
+                preferred_developers = user_preference.developers.all()
+            except UserPreference.DoesNotExist:
+                preferred_game_types = GameType.objects.none()
+                preferred_developers = Developer.objects.none()
+
+            # 根据用户评分和偏好推荐游戏
+            games = Games.objects.prefetch_related(
+                Prefetch(
+                    'game_type_relations',
+                    queryset=GameTypeRelation.objects.select_related('type'),
+                    to_attr='related_types'
+                )
+            ).select_related('developer').filter(
+                Q(game_type_relations__type__in=preferred_game_types) |
+                Q(developer__in=preferred_developers)
+            ).distinct().order_by('-game_rating')
+
+            # 构造推荐游戏列表数据
+            recommended_game_list = [
+                {
+                    "game_id": game.game_id,
+                    "game_name": game.game_name,
+                    "game_platform": game.game_platform,
+                    "game_rating": game.game_rating,
+                    "game_cover": game.game_cover,
+                    "developer": game.developer.name if game.developer else "Unknown Developer",
+                    "tags": [relation.type.type_name for relation in game.related_types]
+                }
+                for game in games
+            ]
+
+            return Response({
+                "status": 200,
+                "message": "Recommended games based on user preferences and ratings.",
+                "data": recommended_game_list
+            }, status=200)
+
+        except Exception as e:
+            return Response({"status": 500, "message": str(e)}, status=500)
+
+class HomeView(APIView):
+    #
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        user=request.user
+        """
+        获取游戏列表并关联类型和开发厂商
+        """
+        try:
+            index=InvertedIndex()
+            index.init()
+            # 使用正确的 related_name 预加载类型关系
+            games = Games.objects.prefetch_related(
+                Prefetch(
+                    'game_type_relations',  # 使用 GameTypeRelation 的 related_name
+                    queryset=GameTypeRelation.objects.select_related('type'),  # 优化查询
+                    to_attr='related_types'  # 自定义属性名称
+                )
+            ).select_related('developer').order_by('-game_rating')  # 按评分降序排序，并预加载开发厂商
+
+            # 构造返回数据
+            game_list = [
+                {
+                    "game_id": game.game_id,
+                    "game_name": game.game_name,
+                    "game_platform": game.game_platform,
+                    "game_rating": game.game_rating,
+                    "game_cover": game.game_cover,
+                    "developer": game.developer.name if game.developer else "Unknown Developer",  # 添加开发厂商信息
+                    "tags": [relation.type.type_name for relation in game.related_types]  # 提取类型名称
+                }
+                for game in games
+            ]
+
+            return Response({"status": 200, "data": game_list}, status=200)
+        except Exception as e:
+            return Response({"status": 500, "message": str(e)}, status=500)
+
+
+import pandas as pd
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Developer, GameType, Games, GameTypeRelation
+
+class ImportView(APIView):
+    def post(self, request):
+        if 'csv_file' not in request.FILES:
+            return Response({'message': '请上传CSV文件'}, status=400)
+
+        csv_file = request.FILES['csv_file']
+        try:
+            # 使用 pandas 读取 CSV 文件内容
+            df = pd.read_csv(csv_file)
+
+            # 删除包含空值的行
+            df.dropna(subset=['Game Name', 'Game Developer', 'Game Rating', 'Game Cover', 'Game Description', 'Game ID'], how='any', inplace=True)
+
+            # 处理游戏评分（将无法转换为数字的值转换为 NaN，并用 0.0 填充）
+            df['Game Rating'] = pd.to_numeric(df['Game Rating'], errors='coerce')
+            df['Game Rating'].fillna(0.0, inplace=True)
+
+            # 导入开发厂商数据，使用 get_or_create 来避免重复数据
+            for index, row in df.iterrows():
+                developer_name = row['Game Developer']
+                if pd.notnull(developer_name):
+                    developer, created = Developer.objects.get_or_create(name=developer_name)
+
+                # 导入游戏数据，并与开发厂商关联
+                game_name = row['Game Name']
+                game_id = row['Game ID']
+                game_rating = row['Game Rating']
+                game_cover = row['Game Cover']
+                game_description = row['Game Description']
+
+                # 检查游戏是否已经存在
+                game, created = Games.objects.get_or_create(
+                    game_id=game_id,
+                    defaults={
+                        'game_name': game_name,
+                        'game_rating': game_rating,
+                        'game_cover': game_cover,
+                        'game_description': game_description,
+                        'developer': developer
+                    }
+                )
+
+                # 获取游戏标签并创建或查找相应的类型
+                tags = row['Game Tags'] if pd.notnull(row['Game Tags']) else ''
+                tag_list = tags.split('|') if tags else []
+
+                # 处理每个标签并在数据库中进行匹配
+                for tag in tag_list:
+                    if tag:
+                        game_type, created = GameType.objects.get_or_create(type_name=tag)
+
+                        # 创建游戏与类型的关系
+                        GameTypeRelation.objects.get_or_create(game=game, type=game_type)
+
+            return Response({'message': '数据导入成功!'}, status=200)
+        except Exception as e:
+            return Response({'message': f'发生错误: {str(e)}'}, status=500)
 
 
 class DetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, game_id):
-        # 查询游戏详情信息
+        """
+        获取游戏详情、类型、开发厂商和评论
+        """
         try:
-            game_details = Games.objects.filter(game_id=game_id).values(
-                'game_id', 'game_name', 'game_platform', 'game_rating', 'game_description', 'game_cover'
-            ).first()
-            if not game_details:
+            # 查询游戏详情并预加载开发厂商信息
+            game = Games.objects.select_related('developer').filter(game_id=game_id).first()
+            if not game:
                 return Response({"status": 404, "message": "Game not found"}, status=404)
 
-            comments = GameComment.objects.filter(game_id=game_id).values(
-                'user_id', 'user__username', 'comment', 'is_recommended', 'timestamp'
-            )
+            game_details = {
+                "game_id": game.game_id,  # 使用 game_id
+                "game_name": game.game_name,
+                "game_platform": game.game_platform,
+                "game_rating": game.game_rating,
+                "game_description": game.game_description,
+                "game_cover": game.game_cover,
+                "developer": game.developer.name if game.developer else "Unknown Developer"
+            }
 
+            # 查询关联的类型
+            tags = GameTypeRelation.objects.filter(game=game).select_related('type').values_list('type__type_name', flat=True)
+
+            # 查询评论
+            comments = GameComment.objects.filter(game=game).values(
+                'user_id', 'user__username', 'comment', 'user_rating', 'timestamp', 'game_actual_id'
+            )
             new_comments = [
                 {
                     'user_id': comment['user_id'],
                     'username': comment['user__username'],
                     'comment': comment['comment'],
-                    'is_recommended': comment['is_recommended'],
-                    'timestamp': comment['timestamp']
+                    'user_rating': comment['user_rating'],
+                    'timestamp': comment['timestamp'],
+                    'game_actual_id': comment['game_actual_id'],  # 添加 game_actual_id
                 }
                 for comment in comments
             ]
-            #user__username 表示跨表查询
-
 
             # 构造返回数据
             response_data = {
                 "game_details": game_details,
-                "comments": list(new_comments)
+                "tags": list(tags),
+                "comments": new_comments
             }
             return Response({"status": 200, "data": response_data}, status=200)
 
         except Exception as e:
             return Response({"status": 500, "message": str(e)}, status=500)
 
-    def post(self, request,game_id):
+    def post(self, request, game_id):
         """
-        增加用户评论
+        添加新的评论
         """
-        user = request.user  # 获取当前登录用户
-        comment_text = request.POST.get("comment")
-        is_recommended = request.POST.get("is_recommended")
-        print(comment_text)
-        print(is_recommended)
-        print(user)
-        if not game_id or not comment_text or is_recommended is None:
-            return Response({"status": 400, "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
-            game = Games.objects.get(game_id=game_id)
-        except Games.DoesNotExist:
-            return Response({"status": 404, "message": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
+            # 获取评论内容、评分等数据
+            comment_data = request.data
+            user = request.user  # 当前登录的用户
+            comment = comment_data.get("comment")
+            user_rating = comment_data.get("user_rating")
 
-        # 检查用户是否已经对该游戏评论
-        if GameComment.objects.filter(user=user, game=game).exists():
-            return Response({"status": 400, "message": "You have already commented on this game"},
-                            status=status.HTTP_400_BAD_REQUEST)
+            if not comment or user_rating is None:
+                return Response({"status": 400, "message": "Comment and rating are required."}, status=400)
 
-        # 创建评论
-        comment = GameComment.objects.create(
-            user=user,
-            game=game,
-            comment=comment_text,
-            is_recommended=is_recommended
-        )
+            # 获取游戏
+            game = Games.objects.filter(game_id=game_id).first()
+            if not game:
+                return Response({"status": 404, "message": "Game not found."}, status=404)
 
-        return Response({
-            "status": 201,
-            "message": "Comment added successfully",
-            "data": {
-                "comment_id": comment.id,
-                "comment": comment.comment,
-                "is_recommended": comment.is_recommended
-            }
-        }, status=status.HTTP_201_CREATED)
+            # 创建评论
+            new_comment = GameComment(
+                user=user,
+                game=game,
+                comment=comment,
+                user_rating=user_rating,
+                game_actual_id=game_id
+            )
+            new_comment.save()
 
-    def put(self, request,game_id):#用于更新资源
+            return Response({"status": 201, "message": "Comment added successfully."}, status=201)
+
+        except Exception as e:
+            return Response({"status": 500, "message": str(e)}, status=500)
+
+    def put(self, request, game_id):
         """
         修改过往评论
         """
-        user = request.user  # 获取当前登录用户
-        comment_text = request.POST.get("comment")
-        is_recommended = request.POST.get("is_recommended")
+        user = request.user
+        comment_text = request.data.get("comment")
+        user_rating = request.data.get("user_rating")  # 修改为 user_rating
 
-        if not game_id or not comment_text or is_recommended is None:
+        if not game_id or not comment_text or user_rating is None:
             return Response({"status": 400, "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            game = Games.objects.get(game_id=game_id)
-        except Games.DoesNotExist:
-            return Response({"status": 404, "message": "Game not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # 检查评论是否存在
         try:
-            comment = GameComment.objects.get(user=user, game=game)
+            comment = GameComment.objects.get(user=user, game_actual_id=game_id)
         except GameComment.DoesNotExist:
             return Response({"status": 404, "message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # 修改评论内容
         comment.comment = comment_text
-        comment.is_recommended = is_recommended
+        comment.user_rating = user_rating  # 更新用户评分
         comment.save()
 
         return Response({
@@ -137,6 +388,7 @@ class DetailView(APIView):
             "data": {
                 "comment_id": comment.id,
                 "comment": comment.comment,
-                "is_recommended": comment.is_recommended
+                "user_rating": comment.user_rating
             }
         }, status=status.HTTP_200_OK)
+

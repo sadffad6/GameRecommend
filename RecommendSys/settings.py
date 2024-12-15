@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -39,10 +40,17 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     'rest_framework.authtoken',
+    "search",
     "user",
     "home",
-]
 
+    'corsheaders',
+
+]
+CORS_ALLOWED_ORIGINS = [
+     'https://localhost:*',  # 允许本地开发环境的跨域请求
+     'https://yourfrontenddomain.com',  # 允许其他域名的请求
+ ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -51,6 +59,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',  # 必须添加在 CommonMiddleware 之前
+    'django.middleware.common.CommonMiddleware',
 
 ]
 
@@ -146,3 +156,62 @@ REST_FRAMEWORK = {
     ],
 }
 
+CORS_ALLOW_CREDENTIALS = True  # 允许跨域请求携带凭证（cookies等）
+
+CSRF_COOKIE_HTTPONLY = True  # 确保 CSRF Cookie 是 HttpOnly 的
+CSRF_TRUSTED_ORIGINS = [
+    'https://localhost:*',
+    'https://yourfrontenddomain.com',  # 允许的可信域名
+]
+
+# HADOOP_CONFIG = {
+#     'namenode_host': 'your_namenode_host',  # Hadoop NameNode的主机地址，替换为实际值
+#     'namenode_port': 'your_namenode_port',  # Hadoop NameNode的端口号，替换为实际值
+#     'hdfs_user': 'your_hdfs_user',  # 访问HDFS的用户名，替换为实际值
+#     'hdfs_path': {
+#         'input': 'your_hdfs_input_path',  # HDFS输入文件夹路径，用于存放用户数据，替换为实际值
+#         'output': 'your_hdfs_output_path',  # HDFS输出文件夹路径，用于获取处理结果，替换为实际值
+#     },
+# }
+
+# Redis缓存配置
+REDIS_CONFIG = {
+    'host': '127.0.0.1',  # Redis服务器的主机地址，替换为实际值
+    'port': '6379',  # Redis服务器的端口号，替换为实际值
+    'db': '0',  # 使用的Redis数据库编号，替换为实际值  # Redis服务器的密码（如果有），替换为实际值
+}
+
+CELERY_CONFIG = {
+    'broker_url': 'redis://{host}:{port}/{db}'.format(
+        host=REDIS_CONFIG['host'],
+        port=REDIS_CONFIG['port'],
+        db=REDIS_CONFIG['db']
+    ),
+    'result_backend': 'redis://{host}:{port}/{db}'.format(
+        host=REDIS_CONFIG['host'],
+        port=REDIS_CONFIG['port'],
+        db=REDIS_CONFIG['db']
+    ),
+    'task_serializer': 'json',
+    'result_serializer': 'json',
+    'accept_content': ['json'],
+    'timezone': 'UTC',
+    'enable_queuing': True,
+    'worker_prefetch_multiplier': 1,
+    'beat_schedule': {
+        'check_and_update_index_task': {
+            'task': 'tasks.index_update_task.check_and_update_index',
+            'schedule': timedelta(hours=0.5),  # 这里设置为每隔30分钟检查一次，可根据实际需求调整
+        }
+    }
+}
+
+# 将Celery配置应用到项目
+CELERY_BROKER_URL = CELERY_CONFIG['broker_url']
+CELERY_RESULT_BACKEND = CELERY_CONFIG['result_backend']
+CELERY_TASK_SERIALIZER = CELERY_CONFIG['task_serializer']
+CELERY_RESULT_SERIALIZER = CELERY_CONFIG['result_serializer']
+CELERY_ACCEPT_CONTENT = CELERY_CONFIG['accept_content']
+CELERY_TIMEZONE = CELERY_CONFIG['timezone']
+CELERY_ENABLE_QUEUING = CELERY_CONFIG['enable_queuing']
+CELERY_WORKER_PREFETCH_MULTIPLIER = CELERY_CONFIG['worker_prefetch_multiplier']
