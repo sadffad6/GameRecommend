@@ -18,12 +18,17 @@
 
 .gameCardContent{
     display: flex;
+    align-items: center;
     justify-content: space-between;
     flex-grow:1;
 }
 
+.gameCardContentLeft{
+    width:535px;
+}
+
 .gameCardContentRight{
-    margin-left:25px;
+    margin-left:auto;
     width:120px;
     position: relative;
     padding-top:15px;

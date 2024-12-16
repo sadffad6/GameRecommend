@@ -14,11 +14,8 @@
 .loginContainer{
    
     padding-top:60px;
-    margin-left:100px;
-    margin-right:100px;
-    padding-left:100px;
-    padding-right:100px;
-    width:1136px;
+    
+    width:100vw;
     height:650px;
     justify-content: center;
     align-items: center;
@@ -26,7 +23,7 @@
 }
 
 .loginRec{
-    height:400px;
+    height:60%;
     width:300px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);

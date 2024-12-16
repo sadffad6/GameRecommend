@@ -24,10 +24,75 @@
     background-color: rgb(255, 255, 255);
     border-radius: 10px;
     padding: 20px;
-    width: 80%;
-    height: 80%;
+    width: 50%;
     padding-top:20px;
     padding-bottom:20px;
     padding-left:30px;
     padding-right:30px;
+}
+
+.tagChooseRecTitle{
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    font-family: 'Xiaolai';
+}
+
+.tagChooseRecContent{
+    
+    font-family: 'Xiaolai';
+}
+
+.typesChooseTitle{
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    font-family: 'Xiaolai';
+}
+
+.typesChooseContent{
+    display:flex;
+    flex-wrap: wrap;
+}
+
+.developerChooseTitle{
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    font-family: 'Xiaolai';
+}
+
+.developerChooseContent{
+    display:flex;
+    flex-wrap: wrap;
+}
+
+.enterHomePage{
+    text-align: right;
+}
+
+.enterHomePageBtn{
+    margin-right:20px;
+    padding: 15px 20px; /* 内边距 */
+    border: none; /* 无边框 */
+    font-size:15px;
+    border-radius: 4px; /* 圆角 */
+    cursor: pointer; /* 鼠标悬停时显示指针 */
+    outline: none; /* 移除聚焦时的轮廓 */
+    font-family: 'Xiaolai';
+    background-color:white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition:background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.3s ease; 
+}
+
+.enterHomePageBtn:hover{
+    background-color: rgb(255, 255, 255);
+    color: rgb(0, 0, 0);
+    border: 1px solid rgb(77, 194, 255);
+}
+
+.enterHomePageBtn:active{
+    background-color: rgb(77, 194, 255);
+    color: rgb(255, 255, 255);
+    border: 1px solid rgb(77, 194, 255);
 }

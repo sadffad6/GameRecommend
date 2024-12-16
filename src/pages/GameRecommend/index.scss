@@ -1,0 +1,22 @@
+.gameRecommendContent{
+    box-shadow: -10px 0 5px -10px rgba(0, 0, 0, 0.3), /* 左侧阴影 */
+    10px 0 5px -10px rgba(0, 0, 0, 0.3); /* 右侧阴影 */
+    padding-top:30px;
+    margin-left:100px;
+    margin-right:100px;
+    padding-left:100px;
+    padding-right:100px;
+    width:1136px;
+    align-items: center;
+    margin-top:60px;
+    padding-left: 100px;
+    padding-right:100px;
+    width:1000px;
+    font-family: 'Comic';
+}
+
+.gameRecommendTitle{
+    font-size: 30px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
