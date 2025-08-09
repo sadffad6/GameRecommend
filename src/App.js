@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Game from './pages/Game'
-import Register from './pages/Register';
 import TagChoose from './pages/TagChoose';
+import GameRecommend from './pages/GameRecommend';
 
 
 function App() {
@@ -14,8 +14,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/game/:gameId" element={<Game />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/tagchoose" element={<TagChoose />} />
+        <Route path="/gamerecommend" element={<GameRecommend />} />
       </Routes>
     </Router>
   );

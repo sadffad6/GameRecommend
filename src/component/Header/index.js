@@ -9,6 +9,9 @@ function Avatar({defaultSrc}) {
     const handleImageUpload = (newSrc) => {
       setSrc(newSrc);
   };
+  const handleAvatarClick = () => {
+    window.location.href = '/login';
+  };
   
     const style={
       width: '50px',
@@ -23,7 +26,7 @@ function Avatar({defaultSrc}) {
       marginTop: '5px'
     }
     return(
-      <div className="avatar" style={style}></div>
+      <div className="avatar" style={style} onClick={handleAvatarClick}></div>
     );
   }
 
@@ -33,11 +36,11 @@ function Header() {
             <a className="title" href="/">GameRecommend</a>
                 <ul className="navLinks">
                     <li><a href="/">主页</a></li>
-                    <li><a href="/">游戏推荐</a></li>
+                    <li><a href="/gamerecommend">游戏推荐</a></li>
                     <li><a href="/">关于</a></li>
                 </ul>
-                <div className="avatar">
-    <Avatar defaultSrc="https://img.moegirl.org.cn/moehime.jpg" />
+                <div className="avatar" >
+    <Avatar defaultSrc="https://img.moegirl.org.cn/moehime.jpg"  />
     </div>
         </nav>
     )

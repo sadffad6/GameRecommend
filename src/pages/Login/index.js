@@ -24,20 +24,16 @@ function Login() {
 
     const handleLogin = async () => {
         try {
-            const response = await axios.post('/api/login/', formData);
+            const response = await axios.post('http://127.0.0.1:8000/login', formData);
             const { data } = response;
-            setMessage(data.message);
+            
 
             if (data.status === 200) {
                 localStorage.setItem('token', data.data.token); // 保存token
                 setMessage(data.message);
 
-                // 跳转到不同页面
-                if (data.isFirstLogin) {
-                    navigate('/tagchoose'); // 跳转到 TagChoose 页面
-                } else {
-                    navigate('/'); // 跳转到主页
-                }
+            // 跳转到不同页面
+            navigate(data.isFirstLogin ? '/tagchoose' : '/'); // 根据是否第一次登录跳转
             }
         } catch (error) {
             setMessage(error.response?.data?.message || '登录失败');
@@ -47,7 +43,8 @@ function Login() {
     // 处理注册
     const handleRegister = async () => {
         try {
-            const response = await axios.post('/api/register/', formData);
+            const response = await axios.post('http://127.0.0.1:8000/register', formData);
+            const token = response.data.token;
             const { data } = response;
             setMessage(data.message);
 

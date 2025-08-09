@@ -1,8 +1,10 @@
 import "./index.scss";
-import React,{ useState, useEffect } from "react";
+import React,{ useState, useEffect, useRef } from "react";
 import Header from "../../component/Header";
 import GameFilter from "../../component/GameFilter";
 import GameCard from "../../component/GameCard";
+
+
 
 const analogGameData=[
     {
@@ -24,43 +26,134 @@ const analogGameData=[
 function Home() {
 
     const [selectedCategory, setSelectedCategory] = useState("全部");
-    const [gameData,setGameData] = useState({});
+    const [gameData,setGameData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const pageSize=50;
+    const [hasMore, setHasMore] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const loader = useRef(null); // 用于懒加载的观察器
+    const [displayedData, setDisplayedData] = useState([]); // 当前展示的数据
 
-    useEffect(() => {
-        const fetchGameData = async () =>{
+
+    const fetchGameData = async (page = 1, category = "全部") =>{
         try{
-            const response = await fetch('');//后端API
+            const response = await fetch(`http://127.0.0.1:8000/home/${page}`);//后端API
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data =await response.json();
-            setGameData(data);
-            setIsLoading(false);
+            if (data.status === 200) {
+                const Games = data.data;
+                if (page === 1) {
+                  setGameData(Games);
+                  // 过滤数据后设置第一页展示的数据
+                  setDisplayedData(
+                    Games.slice(0, pageSize).filter((game) =>
+                      selectedCategory === "全部"
+                        ? true
+                        : game.tags.includes(selectedCategory)
+                    )
+                  );
+                } else {
+                  setDisplayedData((prev) => [
+                    ...prev,
+                    ...Games.filter((game) =>
+                      selectedCategory === "全部"
+                        ? true
+                        : game.tags.includes(selectedCategory)
+                    ),
+                  ]);
+                }
+                setHasMore(Games.length === pageSize); // 判断是否还有更多数据
+              } else {
+                console.error("Error in fetching data:", data.message);
+              }
+            
         }catch(error){
             console.error('Failed to fetch data:',error);
+            
+        }finally{
             setIsLoading(false);
         }
     };
-    fetchGameData();
-},[]);
+
     useEffect(() => {
-        setIsLoading(false);
-    },[]);
+        fetchGameData(currentPage, selectedCategory); // Initial data fetch
+    }, [currentPage, selectedCategory]);
 
+     // 创建 IntersectionObserver 实现懒加载
+     useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoading && hasMore) {
+                setCurrentPage((prev) => prev + 1); // 翻页
+            }
+        });
 
-
-    const handleCategorySelect= (category) => {
-      setSelectedCategory(category);  
-    };
-
-    const getGameDataByCategory = () => {
-        if (selectedCategory === "全部") {
-            return gameData.filter(game => game.tags.includes(selectedCategory));
+        if (loader.current) {
+            observer.observe(loader.current);
         }
-        // 如果需要，可以在这里添加根据类别筛选游戏的逻辑
-        // 例如，如果 analogGameData 是一个对象，可以这样筛选：
-        // return analogGameData[category] || [];
-        return [];
+
+        return () => {
+            if (loader.current) {
+                observer.unobserve(loader.current);
+            }
+        };
+    }, [isLoading, hasMore]);
+
+    /*useEffect(() => {
+        if(currentPage >1){
+            loadMoreData();
+        }
+    },[currentPage]);*/
+
+    const loadMoreData = () => {
+        setCurrentPage((prev) => prev + 1); // 翻页
     };
 
+    const getUniqueGames = (games) => {
+        const gameIds = new Set();
+        return games.filter((game) => {
+            if (gameIds.has(game.game_id)) {
+                return false;
+            }
+            gameIds.add(game.game_id);
+            return true;
+        });
+    };
+
+    const handleCategorySelect = (category) => {
+        setSelectedCategory(category);
+        setCurrentPage(1); // Reset page to 1 when category changes
+        setHasMore(true); // Reset hasMore to true for new category
+        setDisplayedData([]); // 清空已展示的数据
+    };
+
+    /*const getGameDataByCategory = () => {
+        if (selectedCategory === "全部") {
+            
+            return gameData;
+        }
+        return gameData.filter((game) => game.tags.includes(selectedCategory));
+    };*/
+
+    // 加载更多数据
+    /*const loadMoreData = () => {
+        const startIndex = currentPage * pageSize;
+        const endIndex = startIndex + pageSize;
+        const filteredData = selectedCategory === "全部"
+            ? gameData
+            : gameData.filter((game) => game.tags.includes(selectedCategory));
+
+            if (startIndex >= filteredData.length) {
+                setHasMore(false);
+                return;
+            }
+            setDisplayedData((prev) => [
+                ...prev,
+                ...filteredData.slice(startIndex, endIndex),
+            ]);
+            setCurrentPage((prev) => prev + 1);
+    };*/
     
 
     return (
@@ -84,7 +177,7 @@ function Home() {
                         <>
                             <div className="gameListHeader"></div>
                             <ul>
-                                        {getGameDataByCategory().map((game) => (
+                                        {getUniqueGames(displayedData).map((game) => (
                                             
                                             <GameCard 
                                             key={game.game_id}
@@ -97,6 +190,21 @@ function Home() {
                                             tags={game.tags} />
                                         ))}
                                     </ul>
+                                    <div
+                                           
+                                            style={{
+                                                textAlign: "center",
+                                                padding: "10px",
+                                            }}
+                                        >
+                                            {hasMore ? (
+                                                <button className="loadMore" onClick={loadMoreData} disabled={isLoading}>
+                                                    {isLoading ? "加载中..." : "加载更多"}
+                                                </button>
+                                            ) : (
+                                                <p>没有更多数据了</p>
+                                            )}
+                                        </div>
                         </>
                         
                         )}

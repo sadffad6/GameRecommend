@@ -173,6 +173,7 @@ html{
 }
 
 .gameDetailRatingValue{
+    
     display:flex;
     align-items: center;
     height:20px;
@@ -187,7 +188,7 @@ html{
     margin-right:100px;
     position:relative;
     border-radius: 10px;
-    height:1500px;
+
 }
 
 .gameDetailLowerInner{
@@ -207,8 +208,8 @@ html{
     padding-top:20px;
     padding-left:40px;
     padding-right:40px;
-    height:1000px;
     box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
+    margin-bottom:50px;
 }
 
 .gameDetailCommentTitle{
@@ -217,13 +218,19 @@ html{
     font-family: 'Xiaolai';
 }
 
+.gameDetailCommentContent{
+    margin-top:20px;
+    margin-bottom:50px;
+}
+
 .gameDetailUserRating{
     width:300px;
-    margin-left:30px;
-    height:1000px;
+    
+    
 }
 
 .gameDetailUserRatingSticky{
+    margin-left:30px;
     border-radius: 10px;
     padding-top:20px;
     padding-left:20px;
@@ -241,8 +248,11 @@ html{
     font-family: 'Xiaolai';
 }
 
+.gameDetailUserRatingValue{
+    margin-top:20px;
+}
+
 .rating-stars {
-    margin-top:10px;
     display: flex;
     gap: 5px;
     cursor: pointer;
@@ -269,6 +279,9 @@ html{
     color: #333;
     display: flex;
     justify-content: space-between;
+    line-height: 1.5;
+    height:20px;
+    margin-bottom:15px;
 }
 
 .ratingDisplayScore{
@@ -282,6 +295,72 @@ html{
     font-family:'Xiaolai';
 }
 
+.commentItem{
+    padding-left:20px;
+    padding-right:20px;
+    padding-top:10px;
+    padding-bottom:10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    border-radius:15px;
+    margin-bottom:30px;
+}
 
+.userRatingRec{
+    margin-bottom:5px;
+    justify-content: space-between;
+    display: flex;
+}
 
+.userRatingRecTitle{
+    font-size:20px;
+    font-weight:bold;
+    font-family: 'Xiaolai'
+}
 
+.userCommentRec{
+    margin-bottom:5px;
+    margin-left:5px;
+    font-family:"HarmonyOS Sans SC";
+}
+
+.commentTimeStamp{
+    font-size:12px;
+    font-family:"HarmonyOS Sans SC";
+}
+
+.addComment{
+    min-height:74px;
+    height:auto;
+    margin-bottom:20px;
+}
+
+.addCommentInput{
+    padding: 10px; /* 内边距 */
+    box-shadow: 0px 1px 5px rgb(69, 172, 241); /* 边框 */
+    border: 1px #ddd; /* 边框 */
+    border-radius: 4px; /* 圆角 */
+    font-family:'Arial';
+    font-size: 14px;
+     /* 与发送按钮之间的间距 */
+    outline: none; /* 移除聚焦时的轮廓 */
+    text-wrap: auto;
+    resize:none;
+    overflow: hidden; /* 隐藏溢出的内容 */
+    min-height: 50px; /* 设置一个最小高度 */
+    height: auto; /* 允许高度自动增长 */
+    line-height:1.5;
+    width:200px;
+}
+
+.commentUpload{
+    text-align: right;
+}
+
+.ratingSubmit{
+    margin-right:20px;
+    padding: 5px 10px; /* 内边距 */
+    border: none; /* 无边框 */
+    border-radius: 4px; /* 圆角 */
+    cursor: pointer; /* 鼠标悬停时显示指针 */
+    outline: none; /* 移除聚焦时的轮廓 */
+}
